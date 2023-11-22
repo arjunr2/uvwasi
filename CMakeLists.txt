@@ -12,6 +12,10 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 # This can be a commit hash or tag
 set(LIBUV_VERSION v1.44.2)
 
+# Build shared or static libraries
+set(UVWASI_BUILD_SHARED TRUE CACHE BOOL "Flag that defines whether to build the shared library")
+set(UVWASI_BUILD_STATIC TRUE CACHE BOOL "Flag that defines whether to build the static library")
+
 include(CMakeDependentOption)
 cmake_dependent_option(UVWASI_BUILD_TESTS
   "Build the unit tests when uvwasi is the root project" ON
@@ -98,25 +102,31 @@ if(ASAN AND CMAKE_C_COMPILER_ID MATCHES "AppleClang|GNU|Clang")
 endif()
 
 ## Static library target.
-add_library(uvwasi_a STATIC ${uvwasi_sources})
-target_compile_definitions(uvwasi_a PRIVATE ${uvwasi_defines})
-target_compile_options(uvwasi_a PRIVATE ${uvwasi_cflags})
-target_include_directories(uvwasi_a PRIVATE ${PROJECT_SOURCE_DIR}/include)
-if(CODE_COVERAGE)
-    target_link_libraries(uvwasi_a PUBLIC ${LIBUV_LIBRARIES} coverage_config)
-else()
-    target_link_libraries(uvwasi_a PRIVATE ${LIBUV_LIBRARIES})
+if (UVWASI_BUILD_STATIC)
+  add_library(uvwasi_a STATIC ${uvwasi_sources})
+  target_compile_definitions(uvwasi_a PRIVATE ${uvwasi_defines})
+  target_compile_options(uvwasi_a PRIVATE ${uvwasi_cflags})
+  target_include_directories(uvwasi_a PRIVATE ${PROJECT_SOURCE_DIR}/include)
+  if(CODE_COVERAGE)
+      target_link_libraries(uvwasi_a PUBLIC ${LIBUV_LIBRARIES} coverage_config)
+  else()
+      target_link_libraries(uvwasi_a PRIVATE ${LIBUV_LIBRARIES})
+  endif()
+  list(APPEND uvwasi_targets uvwasi_a)
 endif()
 
 ## Shared library target.
-add_library(uvwasi SHARED ${uvwasi_sources})
-target_compile_definitions(uvwasi PRIVATE ${uvwasi_defines})
-target_compile_options(uvwasi PRIVATE ${uvwasi_cflags})
-target_include_directories(uvwasi PRIVATE ${PROJECT_SOURCE_DIR}/include)
-if(CODE_COVERAGE)
-    target_link_libraries(uvwasi PUBLIC ${LIBUV_LIBRARIES} coverage_config)
-else()
-    target_link_libraries(uvwasi PRIVATE ${LIBUV_LIBRARIES})
+if (UVWASI_BUILD_SHARED)
+  add_library(uvwasi SHARED ${uvwasi_sources})
+  target_compile_definitions(uvwasi PRIVATE ${uvwasi_defines})
+  target_compile_options(uvwasi PRIVATE ${uvwasi_cflags})
+  target_include_directories(uvwasi PRIVATE ${PROJECT_SOURCE_DIR}/include)
+  if(CODE_COVERAGE)
+      target_link_libraries(uvwasi PUBLIC ${LIBUV_LIBRARIES} coverage_config)
+  else()
+      target_link_libraries(uvwasi PRIVATE ${LIBUV_LIBRARIES})
+  endif()
+  list(APPEND uvwasi_targets uvwasi)
 endif()
 
 
@@ -159,7 +169,7 @@ if(INSTALL_UVWASI AND NOT CODE_COVERAGE)
     configure_package_config_file(${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in ${config_file} INSTALL_DESTINATION ${cmake_files_install_dir})
 
     install(
-        TARGETS uvwasi_a uvwasi
+        TARGETS ${uvwasi_targets}
         EXPORT ${target_export_name}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

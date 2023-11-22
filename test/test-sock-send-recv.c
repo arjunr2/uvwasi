@@ -46,7 +46,7 @@ void on_client_connect(uv_connect_t* req, int status) {
   free(req);
 }
 
-void client_connection_echo_thread(void* time) {
+void *client_connection_echo_thread(void* time) {
   int r = 0;
   uv_loop_t loop;
   uv_loop_init(&loop);
